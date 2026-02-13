@@ -1,0 +1,9 @@
+Your website files are definitely in this folder:
+c:\Users\Jayro\OneDrive\Desktop\CaffeineCo
+
+You should see two folders:
+- client (Frontend)
+- server (Backend)
+
+Open the 'client' folder to see your React code.
+Open the 'server' folder to see your API code.

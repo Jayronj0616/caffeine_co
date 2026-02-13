@@ -1,0 +1,22 @@
+[
+  {
+    "url": "https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=1200", 
+    "desc": "Latte Art"
+  },
+  {
+    "url": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?q=80&w=2560", 
+    "desc": "Hero Background (Latent Space)"
+  },
+  {
+    "url": "https://images.unsplash.com/photo-1634547437775-68ff77aecc46?q=80&w=600",
+    "desc": "Oatmeal Latte"
+  },
+  {
+    "url": "https://images.unsplash.com/photo-1596906229643-d3c5631713d2?q=80&w=600",
+    "desc": "Macchiato"
+  },
+  {
+    "url": "https://images.unsplash.com/photo-1517701604599-bb29b5c7fa32?q=80&w=600",
+    "desc": "Cold Brew"
+  }
+]

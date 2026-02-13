@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  /* Artisan Cream & Espresso Palette */
+  --color-parchment: #FDFBF7;
+  --color-espresso: #2C1E14;
+  --color-bean: #8D6E63;
+  --color-oatmeal: #E6D5B8;
+  --color-milk: #FFFFFF;
+  
+  /* Fonts */
+  --font-serif: "Playfair Display", serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+/* Base styles for smooth scrolling and default colors */
+html {
+  @apply scroll-smooth;
+}
+
+body {
+  @apply bg-parchment text-espresso font-sans antialiased;
+}
+
+/* Typography Defaults */
+h1, h2, h3, h4, h5, h6 {
+  @apply font-serif font-bold text-espresso;
+}
+
+/* Utility Components via @apply or just direct classes in JSX */
