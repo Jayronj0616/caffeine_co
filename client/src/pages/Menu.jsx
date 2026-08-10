@@ -1,24 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingBag } from 'lucide-react';
+import Swal from 'sweetalert2';
+import { useAuth } from '../context/AuthContext';
+import { getMenu } from '../lib/api/menu';
+import { addToCart } from '../lib/api/cart';
 
 const Menu = () => {
   const [filter, setFilter] = useState('All');
-
   const [menuItems, setMenuItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchMenu = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        const response = await fetch(`${apiUrl}/api/menu`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch menu');
-        }
-        const data = await response.json();
+        const data = await getMenu();
         setMenuItems(data);
       } catch (error) {
         console.error('Error fetching menu:', error);
-        // Fallback or empty state could be handled here
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -31,18 +32,63 @@ const Menu = () => {
     ? menuItems 
     : menuItems.filter(item => item.category === filter);
 
-  const handleSeed = async () => {
-      try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        const response = await fetch(`${apiUrl}/api/seed`, { method: 'POST' });
-        if (response.ok) {
-            const data = await response.json();
-            setMenuItems(data);
-            setFilter('All');
-        }
-      } catch (error) {
-        console.error('Error seeding database:', error);
+  /* Common SweetAlert Styling */
+  const swalOptions = {
+      confirmButtonColor: '#4A3B32', // Espresso
+      cancelButtonColor: '#8B4513', // SaddleBrown
+      background: '#F5F5DC', // Beige/Parchment
+      color: '#4A3B32',
+      width: '24em', // Make it smaller
+      customClass: {
+        popup: 'font-serif border-2 border-[#D2B48C]', // Serif font + Tan border
+        title: 'text-xl', // Smaller title
+        confirmButton: 'uppercase tracking-widest px-4 py-2 text-sm'
       }
+  };
+
+  const handleAddToOrder = async (item) => {
+    if (!user) {
+        Swal.fire({
+            ...swalOptions,
+            icon: 'info',
+            title: 'Please Log In',
+            text: 'You need to be logged in to add items to your cart.',
+            confirmButtonText: 'Log In',
+            showCancelButton: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = '/login';
+            }
+        });
+        return;
+    }
+
+    try {
+        await addToCart(user.id, item.id, 1);
+
+        Swal.fire({
+            ...swalOptions,
+            icon: 'success',
+            title: 'Added to Cart',
+            text: `1x ${item.name}`,
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            background: '#F5F5DC', 
+            iconColor: '#4A3B32',
+            customClass: { popup: 'border border-[#D2B48C]' }
+        });
+    } catch (error) {
+        console.error('Error adding to cart:', error);
+        Swal.fire({
+             ...swalOptions,
+             icon: 'error', 
+             title: 'Oops...', 
+             text: error.message || 'Could not add to cart'
+         });
+    }
   };
 
   return (
@@ -84,7 +130,7 @@ const Menu = () => {
                 </div>
                 <p className="text-sm text-bean italic mb-3">{item.description}</p>
                 <div className="flex gap-3">
-                  <button className="self-start text-xs font-bold uppercase tracking-wider text-espresso flex items-center gap-1 hover:text-bean transition-colors">
+                  <button onClick={() => handleAddToOrder(item)} className="self-start text-xs font-bold uppercase tracking-wider text-espresso flex items-center gap-1 hover:text-bean transition-colors">
                       Add to Order <ShoppingBag size={12}/>
                   </button>
                 </div>
@@ -92,15 +138,9 @@ const Menu = () => {
             </div>
           )) : (
             <div className="col-span-2 text-center py-10 border border-dashed border-oatmeal rounded-lg flex flex-col items-center gap-4">
-              <p className="italic text-bean">No items found.</p>
-              {filter === 'All' && menuItems.length === 0 && (
-                  <button 
-                    onClick={handleSeed}
-                    className="bg-espresso text-parchment px-6 py-2 rounded-sm text-sm uppercase tracking-widest hover:bg-bean transition-colors"
-                  >
-                    Seed Menu Data
-                  </button>
-              )}
+              <p className="italic text-bean">
+                {loading ? 'Loading menu...' : 'No items found.'}
+              </p>
             </div>
           )}
         </div>

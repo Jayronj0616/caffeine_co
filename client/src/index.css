@@ -28,3 +28,28 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Utility Components via @apply or just direct classes in JSX */
+
+/* Admin console — separate identity from the customer site, scoped to
+   anything inside .admin-console (see AdminLayout.jsx). Light roastery
+   palette: cream ground, copper + patina accents. Was originally dark;
+   switched to light across the whole console (not just POS) per request. */
+.admin-console {
+  --adm-bg: #FDFBF7;
+  --adm-surface: #FFFFFF;
+  --adm-surface-hi: #F5EEE3;
+  --adm-border: #E6D5B8;
+  --adm-copper: #B5652F;
+  --adm-patina: #4C8267;
+  --adm-text: #2C1E14;
+  --adm-text-dim: #8D6E63;
+  --adm-danger: #B23B28;
+}
+
+.admin-console .font-display {
+  font-family: 'Fraunces', serif;
+  font-optical-sizing: auto;
+}
+
+.admin-console .font-data {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+}
