@@ -19,32 +19,29 @@ export async function getCart(userId) {
 
 /**
  * Adds an item to the cart, or increments quantity if it's already there.
- * NOTE: this is read-then-write, not atomic. Fine for a low-traffic cart;
- * if two tabs add the same item at the exact same instant, one increment
- * could be lost. Not worth an RPC function for this app's scale.
+ * Delegates to the add_to_cart() RPC (security definer, atomic upsert on
+ * (user_id, coffee_id)) instead of the old read-then-write pattern.
+ * userId is unused here (the RPC scopes to auth.uid() server-side) but
+ * kept in the signature so existing callers don't need to change.
  */
 export async function addToCart(userId, coffeeId, quantity = 1) {
-  const { data: existing, error: findError } = await supabase
-    .from('cart_items')
-    .select('id, quantity')
-    .eq('user_id', userId)
-    .eq('coffee_id', coffeeId)
-    .maybeSingle();
-
-  if (findError) throw new Error(findError.message);
-
-  if (existing) {
-    return updateCartItem(existing.id, existing.quantity + quantity);
-  }
-
-  const { data, error } = await supabase
-    .from('cart_items')
-    .insert({ user_id: userId, coffee_id: coffeeId, quantity })
-    .select('id, quantity, coffee:coffee_id (id, name, price, image, category)')
-    .single();
+  const { data, error } = await supabase.rpc('add_to_cart', {
+    p_coffee_id: coffeeId,
+    p_quantity: quantity,
+  });
 
   if (error) throw new Error(error.message);
-  return { id: data.id, quantity: data.quantity, Coffee: data.coffee };
+
+  // RPC returns the bare cart_items row; re-fetch with the coffee join
+  // so the return shape matches the rest of this module.
+  const { data: full, error: fetchError } = await supabase
+    .from('cart_items')
+    .select('id, quantity, coffee:coffee_id (id, name, price, image, category)')
+    .eq('id', data.id)
+    .single();
+
+  if (fetchError) throw new Error(fetchError.message);
+  return { id: full.id, quantity: full.quantity, Coffee: full.coffee };
 }
 
 /**

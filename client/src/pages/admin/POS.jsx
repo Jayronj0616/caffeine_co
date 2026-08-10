@@ -3,9 +3,7 @@ import { Plus, Minus, Trash2, ShoppingCart, Coffee } from 'lucide-react';
 import { getMenu } from '../../lib/api/menu';
 import { placePosOrder } from '../../lib/api/orders';
 
-const TAX_RATE = 0.08; // duplicated from place_pos_order() SQL — see PROGRESS.md known gaps
-
-const ConfirmModal = ({ cart, subtotal, tax, total, placing, onConfirm, onClose }) => (
+const ConfirmModal = ({ cart, subtotal, total, placing, onConfirm, onClose }) => (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
         <div className="bg-[var(--adm-surface)] border border-[var(--adm-border)] rounded-md w-full max-w-sm overflow-hidden">
             <div className="bg-[var(--adm-copper)] text-[#1C1613] px-6 py-4 flex items-center gap-2">
@@ -25,10 +23,6 @@ const ConfirmModal = ({ cart, subtotal, tax, total, placing, onConfirm, onClose 
                     <div className="flex justify-between text-[var(--adm-text-dim)]">
                         <span>Subtotal</span>
                         <span>${subtotal.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-[var(--adm-text-dim)]">
-                        <span>Tax (8%)</span>
-                        <span>${tax.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between font-semibold text-lg pt-1" style={{ color: 'var(--adm-copper)' }}>
                         <span>Total</span>
@@ -94,8 +88,7 @@ const POS = () => {
     };
 
     const subtotal = cart.reduce((sum, c) => sum + c.price * c.quantity, 0);
-    const tax = subtotal * TAX_RATE;
-    const total = subtotal + tax;
+    const total = subtotal;
 
     const handleConfirmCheckout = async () => {
         setPlacing(true);
@@ -180,10 +173,6 @@ const POS = () => {
                             <span>Subtotal</span>
                             <span>${subtotal.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between text-[var(--adm-text-dim)]">
-                            <span>Tax (8%)</span>
-                            <span>${tax.toFixed(2)}</span>
-                        </div>
                         <div className="flex justify-between font-semibold text-base pt-1" style={{ color: 'var(--adm-copper)' }}>
                             <span>Total</span>
                             <span>${total.toFixed(2)}</span>
@@ -204,7 +193,6 @@ const POS = () => {
                 <ConfirmModal
                     cart={cart}
                     subtotal={subtotal}
-                    tax={tax}
                     total={total}
                     placing={placing}
                     onConfirm={handleConfirmCheckout}

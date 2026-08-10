@@ -190,17 +190,13 @@ const Cart = () => {
                         <div className="bg-parchment p-6 rounded-lg shadow-lg border border-oatmeal sticky top-32">
                             <h3 className="text-xl font-serif text-espresso mb-6 border-b border-oatmeal pb-2">Order Summary</h3>
                             
-                            <div className="flex justify-between mb-2 text-espresso">
+                            <div className="flex justify-between mb-4 text-espresso">
                                 <span>Subtotal</span>
                                 <span>${total.toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between mb-4 text-espresso">
-                                <span>Tax (8%)</span>
-                                <span>${(total * 0.08).toFixed(2)}</span>
-                            </div>
                             <div className="flex justify-between text-xl font-bold text-espresso border-t border-oatmeal pt-4 mb-6">
                                 <span>Total</span>
-                                <span>${(total * 1.08).toFixed(2)}</span>
+                                <span>${total.toFixed(2)}</span>
                             </div>
 
                             <button 

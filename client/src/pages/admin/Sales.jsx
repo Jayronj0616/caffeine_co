@@ -155,6 +155,9 @@ const Sales = () => {
                                         {order.status && (
                                             <span className="text-[10px] uppercase tracking-widest text-[var(--adm-text-dim)]">{order.status}</span>
                                         )}
+                                        {order.source === 'online' && (
+                                            <span className="font-data text-xs text-[var(--adm-text-dim)]">{order.username || order.user_id}</span>
+                                        )}
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <span className="font-data text-xs text-[var(--adm-text-dim)]">{new Date(order.created_at).toLocaleString()}</span>

@@ -38,7 +38,28 @@ async function getAllCustomerOrders() {
     .order('created_at', { ascending: false });
 
   if (error) throw new Error(error.message);
-  return data.map((o) => ({ ...o, source: 'online', items: o.order_items }));
+
+  // Separate lookup rather than an embedded profiles(username) select —
+  // doesn't depend on PostgREST recognizing a FK from orders.user_id to
+  // profiles.id, which may not be declared even though the values line up.
+  const userIds = [...new Set(data.map((o) => o.user_id))];
+  let usernameById = {};
+  if (userIds.length > 0) {
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, username')
+      .in('id', userIds);
+
+    if (profilesError) throw new Error(profilesError.message);
+    usernameById = Object.fromEntries(profiles.map((p) => [p.id, p.username]));
+  }
+
+  return data.map((o) => ({
+    ...o,
+    source: 'online',
+    items: o.order_items,
+    username: usernameById[o.user_id] || null,
+  }));
 }
 
 /**
