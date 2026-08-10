@@ -1,16 +1,12 @@
 {
-  "name": "caffeine-co-monorepo",
+  "name": "caffeine-co",
   "version": "1.0.0",
-  "description": "Root package to manage client and server",
+  "description": "CaffeineCo coffee shop web app — React + Vite frontend on Supabase",
   "scripts": {
-    "install-all": "npm install && npm install --prefix client && npm install --prefix server",
-    "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
-    "start": "concurrently \"npm run dev --prefix client\" \"npm start --prefix server\""
+    "install-all": "npm install --prefix client",
+    "dev": "npm run dev --prefix client"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "concurrently": "^9.2.1"
-  }
+  "license": "ISC"
 }
