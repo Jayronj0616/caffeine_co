@@ -1,6 +1,46 @@
 # CaffeineCo — Project Tracker
 
-Last updated: 2026-08-11 (RLS security check + Vercel fix confirmed live)
+Last updated: 2026-09-19 (unattended overnight session — see "2026-09-19" section below)
+
+---
+
+## 🔴 READ FIRST — the Supabase backend is GONE (2026-09-19)
+
+**The live site is broken right now.** `caffeine-co-smoky.vercel.app` still
+loads (Vercel is fine), but every piece of data on it fails, and the menu
+page currently tells customers **"No items found."**
+
+The Supabase project behind it — `eoxgxnlsjqphrskaofah` — **no longer
+resolves in DNS at all**:
+
+```
+curl https://eoxgxnlsjqphrskaofah.supabase.co/rest/v1/
+  -> exit 6, "Could not resolve host"
+```
+
+That is not a pause and not a network blip on this machine: a different
+Supabase project tested from the same shell in the same minute answered
+normally (HTTP 401, as expected without a key). A *paused* free project
+still resolves. Not resolving at all points to the project being deleted
+or reaped.
+
+**This needs your Supabase dashboard — I can't fix it from code.** Until
+it's sorted, nothing data-backed can be tested: no login, no menu, no
+cart, no orders, no admin console, and none of the open RLS/RPC security
+questions below can be answered.
+
+**Tomorrow, in order:**
+1. Log into Supabase and check whether project `eoxgxnlsjqphrskaofah`
+   still exists (org DEV-PROJECT-2, region ap-southeast-1).
+2. If it's gone: create a new project, run `supabase/schema.sql` against
+   it, re-create the `menu-images` Storage bucket + policies, re-create
+   the admin account, and update `VITE_SUPABASE_URL` /
+   `VITE_SUPABASE_ANON_KEY` in both `client/.env` and the Vercel project
+   env vars.
+3. Note `schema.sql` is **not** a complete rebuild script — see the
+   schema-drift finding in the 2026-09-19 section. `place_pos_order()`
+   and `admin_void_pos_order()` and the POS tables are missing from it,
+   so a rebuild from that file alone would come up short.
 
 ## Session Setup (read this first, don't ask Jayron to repeat it)
 
@@ -16,6 +56,96 @@ Last updated: 2026-08-11 (RLS security check + Vercel fix confirmed live)
 - **Supabase project**: LIVE. Org: DEV-PROJECT-2. Project ref `eoxgxnlsjqphrskaofah`, region `ap-southeast-1`. `schema.sql` has been run. `client/.env` populated. Admin account exists (`jayronxjavier@gmail.com`, username `jayronj16`, role admin).
 - Email confirmation: **OFF, confirmed done** in Supabase Dashboard (2026-08-11).
 - `_deleted/` folder cleanup: **requested 2026-08-11, not yet confirmed complete** — see Open Items below.
+
+---
+
+## 2026-09-19 — unattended session (backend found dead, error handling fixed)
+
+Ran while you were asleep, so everything here is either code-only or
+read-only. Nothing was done that needed your approval.
+
+### Found
+
+1. **Backend gone** — see the red section at the top of this file.
+2. **Every data-fetching page silently swallowed failures.** All seven
+   pages caught their error, `console.error`'d it, then fell through to
+   the ordinary empty state. A dead backend was therefore
+   indistinguishable from an empty shop:
+   - `/menu` → "No items found." (this is what the live site says today)
+   - Sales → "No orders yet."
+   - Dashboard → 0 orders, 0.00 revenue — i.e. it shows an owner a
+     normal-looking zero-sales day when the truth is the server is
+     unreachable. Worst one of the set.
+   - POS → an empty till the cashier cannot ring anything up from, with
+     nothing on screen explaining why.
+3. **Two unhandled promise rejections**: `Inventory.fetchMenu` had no
+   `try/catch` at all, and `POS`'s `getMenu()` had no `.catch()`.
+4. **Schema drift — `supabase/schema.sql` is NOT the full live schema.**
+   This file previously claimed it "reflects the live project's current
+   state". It doesn't. `place_pos_order()`, `admin_void_pos_order()` and
+   the `pos_orders` / `pos_order_items` tables appear nowhere in it —
+   they only ever existed live. Anyone rebuilding from `schema.sql`
+   alone gets an app with a broken POS. (Can't be repaired now; the live
+   source to dump them from is gone. If the project is unrecoverable
+   they'll need rewriting from scratch.)
+
+### Fixed and pushed (commit `ebead08`)
+
+- New `client/src/components/ErrorState.jsx` — honest failure message +
+  a working "Try again", styled for both the customer and admin
+  palettes.
+- Wired into all seven fetching pages, keeping a real empty result
+  visually distinct from a failure.
+- Both unhandled rejections above now handled.
+- Verified live against the currently-dead backend: `/menu` shows the
+  error state and Try again re-fires the fetch. All public routes still
+  render, `npm run build` clean.
+- **Not verified live: the admin pages.** They sit behind a login that
+  needs the same dead backend, so Dashboard / Sales / Inventory / POS /
+  Accounts were checked by build and code review only. Worth a
+  click-through once the DB is back.
+
+### Checked, no bug found
+
+- `order_items` / `pos_order_items` snapshot `name` and `price` at order
+  time, so deleting a menu item doesn't corrupt order history. Correct
+  as-is.
+- `cart_items.coffee_id` is `on delete cascade`, so a deleted coffee
+  can't leave a null-dereferencing row in someone's cart.
+- `AdminLayout`'s route guard is fail-closed (waits for auth to resolve,
+  redirects non-admins, renders nothing mid-redirect) and is only
+  defence-in-depth over the server-side `is_admin()` checks anyway.
+
+### Open Item 2 (admin RPCs callable by `anon`) — partially answered
+
+Read the function bodies in `schema.sql` directly rather than trusting
+the older notes:
+
+- `admin_update_profile` — **has** the `if not public.is_admin() then
+  raise exception 'Not authorized'` guard. ✅
+- `admin_update_order_status` — **has** the same guard. ✅
+- `admin_void_pos_order` — **cannot be verified.** Not in `schema.sql`
+  at all (see schema drift above), and the live DB is unreachable.
+- `place_pos_order` — **same, cannot be verified.**
+
+I wrote a non-destructive probe to answer this empirically (calls each
+RPC anonymously with a nonexistent UUID, so a missing guard would be
+revealed by the error message without touching a real row) but it
+couldn't run — no backend. **Re-run that idea once the DB is back**; it's
+the only way to actually close this item, and two admin-only, money- and
+account-touching functions currently have *no* verified authorization.
+
+### Blocked on you
+
+- **`_deleted/` + `server/` cleanup (Open Item 1)** — I confirmed
+  nothing in live code references either path, and that
+  `_deleted/server/.env` was never committed (checked git history, so no
+  leaked credentials — it's just dead local MySQL creds). The deletion
+  itself was blocked by this session's permission guard as irreversible
+  local destruction. `_deleted/` is 12 tracked files (recoverable from
+  history after deletion); `server/` is 26 MB of untracked
+  `node_modules` for the long-removed Express server. Say the word and
+  it's a one-liner.
 
 ---
 
