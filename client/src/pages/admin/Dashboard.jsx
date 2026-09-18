@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, CalendarDays, Package } from 'lucide-react';
 import { getAllOrders } from '../../lib/api/orders';
+import ErrorState from '../../components/ErrorState';
 
 function isSameDay(date, ref) {
     return date.toDateString() === ref.toDateString();
@@ -26,15 +27,30 @@ const GaugeCard = ({ label, value, sub, icon: Icon, accent }) => (
 const Dashboard = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
 
-    useEffect(() => {
+    const fetchOrders = () => {
+        setLoading(true);
+        setLoadError(false);
         getAllOrders()
             .then(setOrders)
-            .catch((error) => console.error('Error fetching orders:', error))
+            .catch((error) => {
+                console.error('Error fetching orders:', error);
+                setLoadError(true);
+            })
             .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        fetchOrders();
     }, []);
 
     if (loading) return <div className="text-[var(--adm-text-dim)] font-data">Loading...</div>;
+
+    // A failed fetch used to fall through to the stat cards, rendering
+    // ₱0.00 / 0 orders everywhere — indistinguishable from a real day with
+    // no sales, which is a dangerous thing to show an owner.
+    if (loadError) return <ErrorState title="Couldn't load sales data" onRetry={fetchOrders} />;
 
     const now = new Date();
     const todayOrders = orders.filter(o => isSameDay(new Date(o.created_at), now));

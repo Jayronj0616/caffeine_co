@@ -5,10 +5,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getCart, updateCartItem, removeCartItem } from '../lib/api/cart';
 import { placeOrder } from '../lib/api/orders';
+import ErrorState from '../components/ErrorState';
 
 const Cart = () => {
     const [cartItems, setCartItems] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
     const [checkingOut, setCheckingOut] = useState(false);
     const navigate = useNavigate();
     const { user, loading: authLoading } = useAuth();
@@ -25,11 +27,14 @@ const Cart = () => {
     }, [user, authLoading]);
 
     const fetchCart = async () => {
+        setLoading(true);
+        setLoadError(false);
         try {
             const data = await getCart(user.id);
             setCartItems(data);
         } catch (error) {
             console.error('Error fetching cart:', error);
+            setLoadError(true);
         } finally {
             setLoading(false);
         }
@@ -127,7 +132,9 @@ const Cart = () => {
         <div className="pt-32 pb-20 px-4 md:px-8 max-w-5xl mx-auto min-h-screen animate-fade-in">
             <h2 className="text-4xl text-center mb-10 font-serif text-espresso underline decoration-oatmeal underline-offset-8">Your Cart</h2>
 
-            {cartItems.length === 0 ? (
+            {loadError ? (
+                <ErrorState title="Couldn't load your cart" onRetry={fetchCart} />
+            ) : cartItems.length === 0 ? (
                 <div className="text-center py-20 border border-dashed border-oatmeal rounded-lg bg-parchment/50">
                     <ShoppingBag size={48} className="mx-auto text-oatmeal mb-4" />
                     <p className="text-xl text-espresso italic">Your cart is empty.</p>

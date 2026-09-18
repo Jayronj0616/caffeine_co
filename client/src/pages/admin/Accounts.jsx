@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Edit } from 'lucide-react';
 import { getAllProfiles, adminUpdateProfile } from '../../lib/api/auth';
+import ErrorState from '../../components/ErrorState';
 
 const EditModal = ({ user, onClose, onSaved }) => {
     const [username, setUsername] = useState(user.username || '');
@@ -86,13 +87,18 @@ const EditModal = ({ user, onClose, onSaved }) => {
 const Accounts = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
 
     const fetchUsers = () => {
         setLoading(true);
+        setLoadError(false);
         getAllProfiles()
             .then(setUsers)
-            .catch((error) => console.error('Error fetching accounts:', error))
+            .catch((error) => {
+                console.error('Error fetching accounts:', error);
+                setLoadError(true);
+            })
             .finally(() => setLoading(false));
     };
 
@@ -111,6 +117,8 @@ const Accounts = () => {
             <p className="text-sm text-[var(--adm-text-dim)] mb-8">Everyone with a login.</p>
             {loading ? (
                 <p className="text-[var(--adm-text-dim)] font-data text-sm">Loading accounts...</p>
+            ) : loadError ? (
+                <ErrorState title="Couldn't load accounts" onRetry={fetchUsers} />
             ) : users.length === 0 ? (
                 <p className="text-[var(--adm-text-dim)] font-data text-sm">No accounts found.</p>
             ) : (

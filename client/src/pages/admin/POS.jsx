@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Minus, Trash2, ShoppingCart, Coffee } from 'lucide-react';
 import { getMenu } from '../../lib/api/menu';
 import { placePosOrder } from '../../lib/api/orders';
+import ErrorState from '../../components/ErrorState';
 
 const ConfirmModal = ({ cart, subtotal, total, placing, onConfirm, onClose }) => (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
@@ -56,11 +57,25 @@ const POS = () => {
     const [loading, setLoading] = useState(true);
     const [placing, setPlacing] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [loadError, setLoadError] = useState(false);
 
-    useEffect(() => {
+    // Had no .catch(): a failed menu load was an unhandled rejection and
+    // the till rendered as an empty grid, so the cashier could not ring
+    // anything up and had nothing telling them why.
+    const fetchMenu = () => {
+        setLoading(true);
+        setLoadError(false);
         getMenu()
             .then(setItems)
+            .catch((error) => {
+                console.error('Error fetching menu:', error);
+                setLoadError(true);
+            })
             .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        fetchMenu();
     }, []);
 
     const addToCart = (item) => {
@@ -115,6 +130,17 @@ const POS = () => {
             <div className="grid lg:grid-cols-3 gap-8">
                 {/* Menu grid */}
                 <div className="lg:col-span-2 grid sm:grid-cols-2 gap-3">
+                    {loading && (
+                        <p className="sm:col-span-2 text-[var(--adm-text-dim)] font-data text-sm">Loading menu...</p>
+                    )}
+                    {loadError && (
+                        <ErrorState
+                            className="sm:col-span-2"
+                            title="Couldn't load the till"
+                            message="The menu didn't load, so nothing can be rung up. Check the connection and try again."
+                            onRetry={fetchMenu}
+                        />
+                    )}
                     {items.map((item) => (
                         <button
                             key={item.id}

@@ -3,6 +3,7 @@ import { ShoppingBag, Store, Trash2, Lock, ChefHat, CheckCircle2, XCircle } from
 import { getAllOrders, voidPosOrder, updateOrderStatus } from '../../lib/api/orders';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
+import ErrorState from '../../components/ErrorState';
 
 // Valid next steps per current status, for online orders only. Mirrors
 // the transition rules enforced server-side in admin_update_order_status() —
@@ -91,14 +92,19 @@ const VoidModal = ({ order, onClose, onVoided }) => {
 const Sales = () => {
     const [orders, setOrders] = useState([]);
     const [ordersLoading, setOrdersLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
     const [voidingOrder, setVoidingOrder] = useState(null);
     const [updatingOrderId, setUpdatingOrderId] = useState(null);
 
     const fetchOrders = () => {
         setOrdersLoading(true);
+        setLoadError(false);
         getAllOrders()
             .then(setOrders)
-            .catch((error) => console.error('Error fetching orders:', error))
+            .catch((error) => {
+                console.error('Error fetching orders:', error);
+                setLoadError(true);
+            })
             .finally(() => setOrdersLoading(false));
     };
 
@@ -130,6 +136,8 @@ const Sales = () => {
             <div className="max-w-3xl space-y-5">
                 {ordersLoading ? (
                     <p className="text-[var(--adm-text-dim)] font-data text-sm">Loading orders...</p>
+                ) : loadError ? (
+                    <ErrorState title="Couldn't load orders" onRetry={fetchOrders} />
                 ) : orders.length === 0 ? (
                     <p className="text-[var(--adm-text-dim)] font-data text-sm">No orders yet.</p>
                 ) : (

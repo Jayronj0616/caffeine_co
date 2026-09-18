@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Trash2, Plus, Edit } from 'lucide-react';
 import { getMenu, createMenuItem, updateMenuItem, deleteMenuItem } from '../../lib/api/menu';
 import { uploadMenuImage } from '../../lib/api/storage';
+import ErrorState from '../../components/ErrorState';
 
 const Inventory = () => {
     const [items, setItems] = useState([]);
@@ -10,10 +11,19 @@ const Inventory = () => {
     const [uploading, setUploading] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editId, setEditId] = useState(null);
+    const [loadError, setLoadError] = useState(false);
 
+    // Had no catch at all: a failed load was an unhandled rejection and the
+    // list just rendered empty, which looks identical to an empty menu.
     const fetchMenu = async () => {
-        const data = await getMenu();
-        setItems(data);
+        setLoadError(false);
+        try {
+            const data = await getMenu();
+            setItems(data);
+        } catch (error) {
+            console.error('Error fetching menu:', error);
+            setLoadError(true);
+        }
     };
 
     useEffect(() => {
@@ -130,6 +140,9 @@ const Inventory = () => {
 
                 {/* List Section */}
                 <div className="lg:col-span-2 space-y-3">
+                    {loadError && (
+                        <ErrorState title="Couldn't load inventory" onRetry={fetchMenu} />
+                    )}
                     {items.map(item => (
                         <div key={item.id} className="bg-[var(--adm-surface)] border border-[var(--adm-border)] p-4 rounded-md flex justify-between items-center hover:border-[var(--adm-copper)]/50 transition-colors">
                            <div className="flex items-center gap-4 min-w-0">

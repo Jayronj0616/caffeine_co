@@ -4,25 +4,30 @@ import Swal from 'sweetalert2';
 import { useAuth } from '../context/AuthContext';
 import { getMenu } from '../lib/api/menu';
 import { addToCart } from '../lib/api/cart';
+import ErrorState from '../components/ErrorState';
 
 const Menu = () => {
   const [filter, setFilter] = useState('All');
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const { user } = useAuth();
 
-  useEffect(() => {
-    const fetchMenu = async () => {
-      try {
-        const data = await getMenu();
-        setMenuItems(data);
-      } catch (error) {
-        console.error('Error fetching menu:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchMenu = async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const data = await getMenu();
+      setMenuItems(data);
+    } catch (error) {
+      console.error('Error fetching menu:', error);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchMenu();
   }, []);
 
@@ -136,7 +141,13 @@ const Menu = () => {
                 </div>
               </div>
             </div>
-          )) : (
+          )) : loadError ? (
+            <ErrorState
+              className="col-span-2"
+              title="Couldn't load the menu"
+              onRetry={fetchMenu}
+            />
+          ) : (
             <div className="col-span-2 text-center py-10 border border-dashed border-oatmeal rounded-lg flex flex-col items-center gap-4">
               <p className="italic text-bean">
                 {loading ? 'Loading menu...' : 'No items found.'}
