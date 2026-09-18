@@ -38,9 +38,10 @@ questions below can be answered.
    `VITE_SUPABASE_ANON_KEY` in both `client/.env` and the Vercel project
    env vars.
 3. Note `schema.sql` is **not** a complete rebuild script — see the
-   schema-drift finding in the 2026-09-19 section. `place_pos_order()`
-   and `admin_void_pos_order()` and the POS tables are missing from it,
-   so a rebuild from that file alone would come up short.
+   schema-drift finding in the 2026-09-19 section. Run
+   `supabase/schema_missing_pieces.sql` **after** it, and read that
+   file's header first: it is reconstructed from the frontend's call
+   contracts, not recovered from the live DB, and it touches money.
 
 ## Session Setup (read this first, don't ask Jayron to repeat it)
 
@@ -80,14 +81,42 @@ read-only. Nothing was done that needed your approval.
      nothing on screen explaining why.
 3. **Two unhandled promise rejections**: `Inventory.fetchMenu` had no
    `try/catch` at all, and `POS`'s `getMenu()` had no `.catch()`.
-4. **Schema drift — `supabase/schema.sql` is NOT the full live schema.**
-   This file previously claimed it "reflects the live project's current
-   state". It doesn't. `place_pos_order()`, `admin_void_pos_order()` and
-   the `pos_orders` / `pos_order_items` tables appear nowhere in it —
-   they only ever existed live. Anyone rebuilding from `schema.sql`
-   alone gets an app with a broken POS. (Can't be repaired now; the live
-   source to dump them from is gone. If the project is unrecoverable
-   they'll need rewriting from scratch.)
+4. **Schema drift — `supabase/schema.sql` is NOT the full live schema,
+   and is not runnable as a rebuild script.** This file previously
+   claimed it "reflects the live project's current state". It does not.
+   Missing entirely:
+   - `public.is_admin()` — and yet `admin_update_profile()` and
+     `admin_update_order_status()`, both defined *in that same file*,
+     call it (lines 336 and 384). Run schema.sql against a fresh
+     project and those two functions reference something that doesn't
+     exist.
+   - `public.add_to_cart()` — called by `cart.js`
+   - `public.place_pos_order()`, `public.admin_void_pos_order()`
+   - `public.pos_orders` / `public.pos_order_items`
+5. **`place_order()` in schema.sql still charges 8% tax** (line 224:
+   `v_tax := round(v_subtotal * 0.08, 2)`), even though tax was removed
+   from the product — `Cart.jsx` shows a single Total with no tax line
+   and `POS.jsx` literally does `const total = subtotal;`. Rebuilding
+   from schema.sql as-is would **charge every customer 8% more than the
+   cart showed them.** Money bug, latent until a rebuild.
+
+### Written for the rebuild: `supabase/schema_missing_pieces.sql`
+
+Since findings 4 and 5 would have blocked (or silently broken) the
+rebuild, I reconstructed the missing pieces into a new file to run
+after `schema.sql`: `is_admin()`, `add_to_cart()`, the two POS tables
+with admin-only RLS, `place_pos_order()`, `admin_void_pos_order()`, a
+tax-corrected `place_order()`, and `revoke ... from anon` grants on the
+admin RPCs.
+
+**Caveats, stated plainly:** the live definitions are gone, so bodies
+are reconstructed from the exact contracts the frontend calls with
+(argument names, shapes, return values, selected columns) plus the
+decisions recorded in this file — they are a faithful best effort, not
+the original source. And **the SQL has not been executed anywhere**:
+there is no live project to run it against and no local Postgres (no
+Docker). Signatures should be correct because the client would break
+otherwise; bodies need your eyes before they touch money.
 
 ### Fixed and pushed (commit `ebead08`)
 
