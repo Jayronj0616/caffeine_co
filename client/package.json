@@ -13,6 +13,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@openpanel/web": "^1.4.3",
     "@supabase/supabase-js": "^2.45.4",
     "@vitejs/plugin-react": "^5.1.4",
     "lucide-react": "^0.563.0",
