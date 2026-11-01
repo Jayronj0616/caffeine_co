@@ -1,6 +1,5 @@
 import { Coffee, ShoppingBag, User, LogOut } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import Swal from 'sweetalert2';
 import { useAuth } from '../context/AuthContext';
 import { logout } from '../lib/api/auth';
 
@@ -8,7 +7,10 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Loaded on demand: SweetAlert2 is only needed once someone clicks Log Out,
+    // and keeping it out of this file keeps it out of the first-load bundle.
+    const { default: Swal } = await import('sweetalert2');
     Swal.fire({
         title: 'Sign Out?',
         text: "Are you sure you want to log out?",

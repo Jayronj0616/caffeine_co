@@ -4,18 +4,18 @@ import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
-import Menu from './pages/Menu';
-import Origins from './pages/Origins';
-import OurStory from './pages/OurStory';
+import RouteErrorBoundary from './components/RouteErrorBoundary';
 
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Cart from './pages/Cart';
-
-// The admin console is lazy: it's a large chunk (dashboard, sales, the
-// POS till, inventory, accounts) that only staff ever open, and it was
-// previously bundled into the first load for every customer visiting the
-// menu. Customer-facing pages stay eager — they're the common path.
+// Only the landing page is eager, since it's what a first visit renders.
+// Every other route is split out so a visitor downloads just the code for
+// the page they're on. The admin console is the heaviest of these and only
+// staff ever open it.
+const Menu = lazy(() => import('./pages/Menu'));
+const Origins = lazy(() => import('./pages/Origins'));
+const OurStory = lazy(() => import('./pages/OurStory'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Cart = lazy(() => import('./pages/Cart'));
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
 const Sales = lazy(() => import('./pages/admin/Sales'));
@@ -31,6 +31,7 @@ function Layout() {
     <div className="min-h-screen bg-parchment text-espresso flex flex-col justify-between font-sans">
       {!isAdminRoute && <Navbar />}
       <main className="flex-grow">
+        <RouteErrorBoundary resetKey={location.pathname}>
         <Suspense
           fallback={
             <div className="pt-32 text-center text-espresso">Loading...</div>
@@ -53,6 +54,7 @@ function Layout() {
           </Route>
           </Routes>
         </Suspense>
+        </RouteErrorBoundary>
       </main>
       {!isAdminRoute && <Footer />}
     </div>
