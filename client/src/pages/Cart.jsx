@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { getCart, updateCartItem, removeCartItem } from '../lib/api/cart';
 import { placeOrder } from '../lib/api/orders';
 import ErrorState from '../components/ErrorState';
+import { op } from '../analytics';
 
 const Cart = () => {
     const [cartItems, setCartItems] = useState([]);
@@ -104,6 +105,7 @@ const Cart = () => {
         setCheckingOut(true);
         try {
             await placeOrder();
+            op?.track('order_placed');
             setCartItems([]);
             Swal.fire({
                 ...swalOptions,
